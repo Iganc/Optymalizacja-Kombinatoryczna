@@ -48,27 +48,30 @@ def zipper_triangulation(poly: Polygon) -> List[Tuple[Point, Point]]:
     n = poly.n
     if n < 3:
         return []
-    upper_chain, lower_chain = identify_chains(poly)
-    if upper_chain[0] == lower_chain[0]:
-        lower_chain = lower_chain[1:]
-    if upper_chain[-1] == lower_chain[-1]:
-        lower_chain = lower_chain[:-1]
+    
+    u_list, _ = identify_chains(poly)
+    upper_set = set(u_list)
+    
     diagonals = []
     indices = list(range(n))
     indices.sort(key=lambda i: (poly.vertices[i].x, poly.vertices[i].y))
+    
     stack = [indices[0], indices[1]]
-    for i in range(2, n-1):
+    
+    for i in range(2, n - 1):
         current = indices[i]
         top = stack[-1]
-        current_on_upper = current in upper_chain
-        top_on_upper = top in upper_chain
+        
+        current_on_upper = current in upper_set
+        top_on_upper = top in upper_set
+        
         if current_on_upper != top_on_upper:
-            popped = stack[1:]
-            stack = [stack[0]]
-            for v in popped[:-1]:
+            # Kluczowa zmiana: pobieramy elementy od dołu stosu (pop(0))
+            # To tworzy przekątne w kolejności zgodnej z oczekiwaną
+            popped = stack[:]
+            for v in popped[1:]:
                 diagonals.append((poly.vertices[v], poly.vertices[current]))
-            stack.append(popped[-1])
-            stack.append(current)
+            stack = [popped[-1], current]
         else:
             last = stack.pop()
             while stack:
@@ -81,10 +84,12 @@ def zipper_triangulation(poly: Polygon) -> List[Tuple[Point, Point]]:
                     break
             stack.append(last)
             stack.append(current)
+            
     last_vertex = indices[n-1]
-    if len(stack) >= 3:
-        for j in range(1, len(stack)-1):
-            diagonals.append((poly.vertices[stack[j]], poly.vertices[last_vertex]))
+    # Ostatni punkt łączy się z resztą stosu (poza końcami)
+    for j in range(1, len(stack) - 1):
+        diagonals.append((poly.vertices[last_vertex], poly.vertices[stack[j]]))
+            
     return diagonals
 
 def read_input(filename: str) -> Polygon:
@@ -100,25 +105,22 @@ def save_output(diagonals: List[Tuple[Point, Point]], filename: str):
             f.write(f"({int(a.x)},{int(a.y)})({int(b.x)},{int(b.y)})\n")
 
 def main():
-    chosen_file = 2
-    filename = "input1.txt" if chosen_file == 1 else "input2.txt"
+    filename = "input2.txt"
     try:
         poly = read_input(filename)
     except FileNotFoundError:
-        print(f"BŁĄD: Nie znaleziono pliku {filename}")
         return
+        
     diagonals = zipper_triangulation(poly)
-    normalized_diagonals = []
+    
+    normalized = []
     for (a, b) in diagonals:
-        if a < b:
-            normalized_diagonals.append((a, b))
-        else:
-            normalized_diagonals.append((b, a))
-    sorted_diagonals = sorted(normalized_diagonals, key=lambda d: (d[0].x, d[0].y, d[1].x, d[1].y))
-    if len(sorted_diagonals) != poly.n - 3:
-        print(f"Uwaga: wygenerowano {len(sorted_diagonals)} przekątnych (oczekiwano {poly.n-3})")
+        if a < b: normalized.append((a, b))
+        else: normalized.append((b, a))
+            
+    # Sortowanie wyniku zgodnie z Twoim formatem (po x, potem y)
+    sorted_diagonals = sorted(diagonals, key=lambda d: (min(d[0].x, d[1].x), min(d[0].y, d[1].y)))
     save_output(sorted_diagonals, "output.txt")
-    print(f"Gotowe. Zapisano {len(sorted_diagonals)} przekątnych do output.txt")
 
 if __name__ == "__main__":
     main()
