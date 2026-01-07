@@ -66,8 +66,6 @@ def zipper_triangulation(poly: Polygon) -> List[Tuple[Point, Point]]:
         top_on_upper = top in upper_set
         
         if current_on_upper != top_on_upper:
-            # Kluczowa zmiana: pobieramy elementy od dołu stosu (pop(0))
-            # To tworzy przekątne w kolejności zgodnej z oczekiwaną
             popped = stack[:]
             for v in popped[1:]:
                 diagonals.append((poly.vertices[v], poly.vertices[current]))
@@ -86,7 +84,6 @@ def zipper_triangulation(poly: Polygon) -> List[Tuple[Point, Point]]:
             stack.append(current)
             
     last_vertex = indices[n-1]
-    # Ostatni punkt łączy się z resztą stosu (poza końcami)
     for j in range(1, len(stack) - 1):
         diagonals.append((poly.vertices[last_vertex], poly.vertices[stack[j]]))
             
